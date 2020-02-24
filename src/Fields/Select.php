@@ -19,7 +19,27 @@ class Select extends Field
      */
     public function options(array $options)
     {
-        $this->withMeta(['options' => $options]);
+        $this->withMeta([
+            'options' => collect($options)->map(function ($label, $value) {
+                return ['label' => $label, 'value' => $value];
+            })->values()->all(),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Display using label instead of value.
+     *
+     * @return $this
+     */
+    public function displayUsingLabel()
+    {
+        $this->displayUsing(function ($value) {
+            return collect($this->meta['options'])
+                ->where('value', $value)
+                ->first()['label'] ?? $value;
+        });
 
         return $this;
     }

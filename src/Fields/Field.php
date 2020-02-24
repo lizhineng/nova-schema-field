@@ -3,6 +3,7 @@
 namespace Lizhineng\NovaSchemaField\Fields;
 
 use JsonSerializable;
+use Illuminate\Support\Str;
 use Lizhineng\NovaSchemaField\Metable;
 
 abstract class Field implements JsonSerializable
@@ -24,6 +25,20 @@ abstract class Field implements JsonSerializable
     public $attribute;
 
     /**
+     * The field's value.
+     *
+     * @var string
+     */
+    public $value;
+
+    /**
+     * Customize the value for display.
+     *
+     * @var callable|null
+     */
+    public $displayCallback;
+
+    /**
      * The field's component.
      *
      * @var string
@@ -36,10 +51,10 @@ abstract class Field implements JsonSerializable
      * @param  string  $name
      * @param  string  $attribute
      */
-    public function __construct($name, $attribute)
+    public function __construct($name, $attribute = null)
     {
         $this->name = $name;
-        $this->attribute = $attribute;
+        $this->attribute = $attribute ?? str_replace(' ', '_', Str::lower($name));
     }
 
     /**
@@ -53,6 +68,45 @@ abstract class Field implements JsonSerializable
     }
 
     /**
+     * Customize the value for display.
+     *
+     * @param callable $callback
+     * @return $this
+     */
+    public function displayUsing(callable $callback)
+    {
+        $this->displayCallback = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Resolve the value.
+     *
+     * @param $resource
+     * @return void
+     */
+    public function resolve($resource)
+    {
+        $this->value = $resource[$this->attribute];
+    }
+
+    /**
+     * Resolve the value for display.
+     *
+     * @param $resource
+     * @return void
+     */
+    public function resolveForDisplay($resource)
+    {
+        if (is_callable($this->displayCallback)) {
+            $this->value = call_user_func($this->displayCallback, $resource[$this->attribute]);
+        } else {
+            $this->value = $resource[$this->attribute];
+        }
+    }
+
+    /**
      * Prepares the data for field.
      *
      * @return array
@@ -63,6 +117,7 @@ abstract class Field implements JsonSerializable
             'name' => $this->name,
             'attribute' => $this->attribute,
             'component' => $this->component,
+            'value' => $this->value,
         ], $this->meta());
     }
 }

@@ -14,11 +14,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, itemIndex) in value">
-            <td class="text-left" v-for="field in field.fields">
+          <tr v-for="(item, itemIndex) in field.data">
+            <td class="text-left" v-for="field in item">
               <component
                 :is="resolveComponentName(field)"
-                v-model="item[field.attribute]"
+                v-model="field.value"
                 :field="field"
               />
             </td>
@@ -49,7 +49,7 @@
             height="24"
             view-box="0 0 24 24"
           />
-          <span class="ml-1">{{ field.addText }}</span>
+          <span class="ml-1">{{ field.actionText }}</span>
         </button>
       </div>
     </template>
@@ -64,12 +64,20 @@ export default {
 
   props: ['resourceName', 'resourceId', 'field'],
 
+  computed: {
+    payload () {
+      return _(this.field.data)
+        .map(row => _(row).map(column => [column.attribute, column.value]).fromPairs().value())
+        .value()
+    }
+  },
+
   methods: {
     /**
      * Fill the given FormData object with the field's internal value.
      */
      fill(formData) {
-      formData.append(this.field.attribute, JSON.stringify(this.value))
+      formData.append(this.field.attribute, JSON.stringify(this.payload))
     },
 
     resolveComponentName (field) {
@@ -77,11 +85,15 @@ export default {
     },
 
     removeRow (index) {
-      return this.value.splice(index, 1)
+      return this.field.data.splice(index, 1)
+    },
+
+    newRow () {
+       return JSON.parse(JSON.stringify(this.field.fields))
     },
 
     addRow () {
-      this.value = [...this.value, {}]
+      this.field.data = [...this.field.data, this.newRow()]
     },
   },
 }

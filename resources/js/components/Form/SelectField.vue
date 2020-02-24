@@ -5,9 +5,9 @@
     v-on:input="$emit('input', $event.target.value)"
   >
     <option
-      v-for="(value, label) in field.options"
-      :value="value"
-      v-text="label"
+      v-for="option in field.options"
+      :value="option.value"
+      v-text="option.label"
     />
   </select>
 </template>

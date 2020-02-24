@@ -22,18 +22,32 @@ class Schema extends Field
     public $showOnIndex = false;
 
     /**
-     * The fields of the schema.
+     * The class of the schema structure.
+     *
+     * @var string
+     */
+    protected $structureClass;
+
+    /**
+     * The data for the field.
      *
      * @var array
      */
-    public $fields = [];
+    protected $data;
 
     /**
      * The label that should be used for the add row button.
      *
      * @var string
      */
-    public $addText;
+    protected $actionText;
+
+    public function __construct($name, $attribute = null, $structure)
+    {
+        parent::__construct($name, $attribute);
+
+        $this->structureClass = $structure;
+    }
 
     /**
      * Hydrate the given attribute on the model based on the incoming request.
@@ -51,17 +65,26 @@ class Schema extends Field
         }
     }
 
-    /**
-     * Set the fields displayed by the schema field.
-     *
-     * @param  array  $fields
-     * @return $this
-     */
-    public function fields($fields)
+    public function resolveForDisplay($resource, $attribute = null)
     {
-        $this->fields = $fields;
+        parent::resolveForDisplay($resource, $attribute);
 
-        return $this;
+        $this->data = collect($this->value)->map(function ($item) {
+            return tap($this->structure()->fields(), function ($fields) use ($item) {
+                collect($fields)->map->resolveForDisplay($item);
+            });
+        });
+    }
+
+    public function resolve($resource, $attribute = null)
+    {
+        parent::resolve($resource, $attribute);
+
+        $this->data = collect($this->value)->map(function ($item) {
+            return tap($this->structure()->fields(), function ($fields) use ($item) {
+                collect($fields)->map->resolve($item);
+            });
+        });
     }
 
     /**
@@ -78,6 +101,16 @@ class Schema extends Field
     }
 
     /**
+     * Create a new schema structure.
+     *
+     * @return SchemaStructure
+     */
+    protected function structure()
+    {
+        return new $this->structureClass;
+    }
+
+    /**
      * Prepare the field for JSON serialization.
      *
      * @return array
@@ -85,8 +118,9 @@ class Schema extends Field
     public function jsonSerialize()
     {
         return array_merge(parent::jsonSerialize(), [
-            'fields' => $this->fields,
-            'addText' => $this->addText ?? __('Add row'),
+            'fields' => $this->structure()->fields(),
+            'data' => $this->data,
+            'actionText' => $this->actionText ?? __('Add row'),
         ]);
     }
 }

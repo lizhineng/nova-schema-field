@@ -12,11 +12,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in field.value">
-            <td class="text-left" v-for="field in field.fields">
+          <tr v-for="item in field.data">
+            <td class="text-left" v-for="field in item">
               <component
                 :is="resolveComponentName(field)"
-                v-model="item[field.attribute]"
+                v-model="field.value"
                 :field="field"
               />
             </td>
